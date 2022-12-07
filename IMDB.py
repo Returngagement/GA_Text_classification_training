@@ -39,17 +39,19 @@ def Bag_of_words_model(data):
 
 #感知分类器
 def perceptron():
-   X_train=Bag_of_words_model(Turn_to_English(train_data))
-   Kuolie=[]
-   Kuolie1=np.array([])
+   X_train = Bag_of_words_model(Turn_to_English(train_data))
+   Kuolie = []
+   Kuolie1 = np.array([])
    for i in range(25000):
        Kuolie.append(0)
    Kuolie1=np.append(Kuolie1,Kuolie)
    for i in range(247):
-       X_train=np.c_[X_train, Kuolie1.T]           ##补足10000位
-   Demo = Perceptron(fit_intercept = False, max_iter = 100, tol = 0.001, shuffle = False, eta0 = 0.1)
+       X_train = np.c_[X_train, Kuolie1.T]           ##补足10000位
+   Demo = Perceptron(fit_intercept = True, max_iter = 1000, tol = 0.001, shuffle = False, eta0 = 0.1)
+   #fit_intercept是否对参数截距项b进行估计，若为false数据为中心化
+   #max_iter最大迭代次数，tol停止迭代标准，shuffle每次训练后是否打乱数据，eta0学习率，决定每次参数变化的幅度
    Demo.fit(X_train,train_labels)
-   #print(Demo.intercept_[0])
+   #print(len(Demo.intercept_))
    return Demo
 
 
@@ -58,7 +60,7 @@ t = 10  # 遗传算法迭代的次数
 n = 50 # 种群的个体数,要求大于20以保证具有随机性
 #遗传算法
 def GA():
-    X_test=Bag_of_words_model(Turn_to_English(test_data))
+    X_test = Bag_of_words_model(Turn_to_English(test_data))
     Kuolie = []
     Kuolie1 = np.array([])
     for i in range(25000):
@@ -67,7 +69,7 @@ def GA():
     for i in range(247):
         X_test = np.c_[X_test, Kuolie1.T]            #补足10000位
 
-    First_Population=[]                #随机生成n个个体，作为初始种群
+    First_Population = []                #随机生成n个个体，作为初始种群
     for i in range(n):
         number = random.randint(0, 25000)
         First_Population.append(number)
@@ -75,22 +77,23 @@ def GA():
     # 第一代种群
     population=np.zeros((n,10000))
     for i in range(n):
-        population[i]=X_test[First_Population[i]]
+        population[i] = X_test[First_Population[i]]
 
 
     # 遗传算法的迭代次数为t
-    fitness_num=np.zeros(n*t)
+    fitness_num=np.zeros(n*t)   #存储所有个体的适应值
     fitness_change = np.zeros(t)
     for i in range(t):
         fitness = np.zeros(n)  # fitness为每一个个体的适应度值
         for j in range(n):
             fitness[j] = Jd(population[j])  # 计算每一个体的适应度值
-
+        #是否满足停止迭代条件
         for m in range(n):
-            fitness_num[i*n+m]=fitness[m]
-        result = np.sum(fitness==fitness[0])==len(fitness)
+            fitness_num[i*n+m] = fitness[m]   #存储每代个体的适应值
+        result = np.sum(fitness == fitness[0]) == len(fitness)
         if result:
             break
+
         population = selection(population, fitness)  # 通过概率选择产生新一代的种群
         population = crossover(population)  # 通过交叉产生新的个体
         population = mutation(population)  # 通过变异产生新个体
@@ -123,9 +126,9 @@ def selection(population, fitness):
         if i == 0:
             fitness_sum[i] = fitness[i]
         else:
-            fitness_sum[i] = fitness[i] + fitness_sum[i - 1]     #计算累计概率
+            fitness_sum[i] = fitness[i] + fitness_sum[i - 1]     #计算累加适应值
     for i in range(n):
-        fitness_sum[i] = fitness_sum[i] / sum(fitness)
+        fitness_sum[i] = fitness_sum[i] / sum(fitness)    #计算累计概率
     # 选择新的种群
     population_new = np.zeros((n, 10000))
     for i in range(n):
@@ -153,7 +156,7 @@ def crossover(population):
         mother_1 = mother[i]
         one_zero = []                                       #用one_zero ,zero_one记录个体中不一样的下标
         zero_one = []
-        for j in range(5000):                               #选择一般进行交叉
+        for j in range(5000):                               #选择一半进行交叉
             if father_1[j] == 1 and mother_1[j] == 0:
                 one_zero.append(j)
             if father_1[j] == 0 and mother_1[j] == 1:
@@ -199,11 +202,10 @@ def mutation(population):
 # 个体适应度函数 Jd(x)
 def Jd(x):
     Adaptation_value = perceptron()  # train计算的权重，用于个体适应度
-    dotx=np.dot(Adaptation_value.coef_,x)             #coef_	array 二维数组	输出训练后的模型参数w的数组，不包含截距项b。
+    dotx=np.dot(Adaptation_value.coef_, x)             #coef_	array 二维数组	输出训练后的模型参数w的数组，不包含截距项b。
                                                      # 当为二分类时，该数组shape=(1,n)，n为特征数量。当为多分类时shape=（k, n)
-    # for i in range(10000):
-    #     dotx[i]=dotx[i]+Adaptation_value.intercept_[i] #intercept_	array 一维数组	输出训练后的模型截距b的数组。
-                                                       # 当为二分类时，该数组shape=(1,)。当为多分类时shape=（k, )
+    dotx = dotx+Adaptation_value.intercept_[0]
+
     print("适应度:")
     print(dotx)
     return dotx
